@@ -309,15 +309,19 @@
   .none{font-size:13px; color:var(--faint); font-style:italic}
 
   .manage{margin-top:38px; border-top:2px solid var(--ink); padding-top:20px}
-  .mgrid{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:26px; margin-top:16px}
-  .mlist{display:flex; flex-direction:column; gap:7px; margin-bottom:12px}
+  .mgrid{display:flex; flex-direction:column; gap:0; margin-top:16px}
+  .mgrid > div{min-width:0; padding-block:20px; border-top:1px solid var(--line)}
+  .mgrid > div:first-child{padding-top:4px; border-top:none}
+  .mgrid .mlist, .mgrid .mhint{max-width:860px}
+  .mgrid .seg{max-width:440px}
+  .mlist{display:flex; flex-direction:column; gap:7px; margin-bottom:14px}
   .mrow{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
-  .mrow input[type="text"]{flex:1; min-width:0}
-  .mrow input.pts{width:56px; text-align:right; font-family:var(--fm)}
-  .mrow select{max-width:140px}
-  .mrow .rmtag{font-family:var(--fm); font-size:11px; color:var(--faint); width:44px; flex:none}
-  .mrow .x{background:none; border:none; color:var(--faint); font-size:15px; padding:2px 4px; line-height:1}
-  .mrow .x:hover{color:var(--brick)}
+  /* One line where there's room; wraps by itself on a narrow screen. */
+  .mrow > input.wide{flex:1 1 240px; min-width:0}
+  .mrow > input.grow{flex:1 1 200px; min-width:0}
+  .mrow select{flex:0 1 190px; min-width:120px; max-width:none}
+  .mrow > .rmtag{width:auto; min-width:34px; flex:none}
+  .mrow > input.pts, .mrow > .x, .mrow > .ghost{flex:none}
   .seg{display:flex; gap:0; margin-bottom:10px; flex-wrap:wrap}
   .seg button{
     flex:1; min-width:52px; text-align:center; background:var(--surface);
@@ -478,8 +482,8 @@
       <div>
         <h3 class="sec" style="font-size:13px">Rooms</h3>
         <p class="mhint">People claim their own rooms. Releasing one frees it up; the points stay with the room.</p>
-        <div class="mrow" style="margin-bottom:16px">
-          <input type="text" id="mHouse" placeholder="Household name" aria-label="Household name">
+        <div class="mrow" style="margin-bottom:16px; max-width:860px">
+          <input type="text" id="mHouse" class="grow" placeholder="Household name" aria-label="Household name">
         </div>
         <p class="mhint" style="margin-bottom:6px">Groups — a duty can be limited to one</p>
         <div class="mlist" id="mZones"></div>
@@ -1315,7 +1319,7 @@ var SEED_CONFIG = {
     var dz = draft.zones || (draft.zones = []);
     $("mZones").innerHTML = dz.length ? dz.map(function(z,i){
       return '<div class="mrow" data-zi="'+i+'">'+
-        '<input type="text" data-f="zname" value="'+esc(z.name)+'" placeholder="Group" aria-label="Group name"'+dis+">"+
+        '<input type="text" class="grow" data-f="zname" value="'+esc(z.name)+'" placeholder="Group" aria-label="Group name"'+dis+">"+
         '<button class="x" data-rm-zone="'+i+'" title="Remove" aria-label="Remove group"'+dis+">×</button>"+
         "</div>";
     }).join("") : '<p class="mhint" style="margin:0 0 8px">No groups — every duty is open to every room.</p>';
@@ -1325,8 +1329,8 @@ var SEED_CONFIG = {
     $("mMembers").innerHTML = ms.length ? ms.map(function(m){
       return '<div class="mrow">'+
         '<span class="rmtag">RM '+m.room+"</span>"+
-        '<input type="text" value="'+esc(m.name)+'" data-acc-name="'+m.room+'" aria-label="Name for room '+m.room+'"'+dis+">"+
-        '<select data-acc-color="'+m.room+'" aria-label="Colour for room '+m.room+'"'+dis+">"+
+        '<input type="text" value="'+esc(m.name)+'" data-acc-name="'+m.room+'" class="grow" aria-label="Name for room '+m.room+'"'+dis+">"+
+                '<select data-acc-color="'+m.room+'" aria-label="Colour for room '+m.room+'"'+dis+">"+
           COLORS.map(function(c){ return '<option value="'+c+'"'+(c===m.color?" selected":"")+">"+c+"</option>"; }).join("")+
         "</select>"+
         ((draft.zones||[]).length ? '<select data-acc-zone="'+m.room+'" aria-label="Group for room '+m.room+'"'+dis+">"+
@@ -1357,7 +1361,7 @@ var SEED_CONFIG = {
     $("mChores").innerHTML = (draft.chores || []).map(function(c,i){
       var rotating = c.rotate !== false;
       return '<div class="mrow" data-ci="'+i+'">'+
-        '<input type="text" data-f="title" value="'+esc(c.title)+'" placeholder="Duty" aria-label="Duty name"'+dis+">"+
+        '<input type="text" class="wide" data-f="title" value="'+esc(c.title)+'" placeholder="Duty" aria-label="Duty name"'+dis+">"+
         '<input type="number" class="pts" data-f="points" min="0" max="99" value="'+(c.points||0)+'" aria-label="Points"'+dis+">"+
         '<select data-f="assign" aria-label="Assignment"'+dis+">"+
           '<option value="__rot"'+((rotating && !c.zone)?" selected":"")+">↻ rotates · everyone</option>"+
@@ -1375,7 +1379,7 @@ var SEED_CONFIG = {
 
     $("mPresets").innerHTML = (draft.bonusPresets || []).map(function(p,i){
       return '<div class="mrow" data-pi="'+i+'">'+
-        '<input type="text" data-f="title" value="'+esc(p.title)+'" placeholder="Bonus" aria-label="Bonus name"'+dis+">"+
+        '<input type="text" class="wide" data-f="title" value="'+esc(p.title)+'" placeholder="Bonus" aria-label="Bonus name"'+dis+">"+
         '<input type="number" class="pts" data-f="points" min="0" max="99" value="'+(p.points||0)+'" aria-label="Points"'+dis+">"+
         '<button class="x" data-rm-preset="'+i+'" title="Remove" aria-label="Remove preset"'+dis+">×</button>"+
         "</div>";
