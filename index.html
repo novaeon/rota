@@ -151,6 +151,9 @@
     letter-spacing:.42em; text-indent:.42em; text-align:center; padding:8px 6px;
   }
   .pinhelp{font-size:12px; color:var(--faint); margin:-4px 0 11px}
+  .pinpanel{margin-top:16px; max-width:520px}
+  .pinfields{display:flex; gap:16px; flex-wrap:wrap}
+  .pinfields .field{margin-bottom:0}
   .authrow{display:flex; gap:9px; align-items:center; margin-top:15px; flex-wrap:wrap}
   .authmsg{font-size:13px; color:var(--brick); min-height:1.3em; margin-top:9px}
   .authmsg.ok{color:var(--pine)}
@@ -396,6 +399,30 @@
   </header>
 
   <div class="notice err" id="errNotice" hidden><span id="errText"></span></div>
+
+  <div class="panel pinpanel" id="pinPanel" hidden aria-labelledby="pinPanelH">
+    <div class="sechead">
+      <h2 class="sec" id="pinPanelH">Change PIN</h2>
+      <span class="right"><button class="ghost tiny" id="pinCancel">Cancel</button></span>
+    </div>
+    <p class="mhint" id="pinPanelSub"></p>
+    <div class="pinfields">
+      <div class="field" id="fCur">
+        <label for="pCur">Current PIN</label>
+        <input type="password" id="pCur" class="pin" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">
+      </div>
+      <div class="field">
+        <label for="pNew">New PIN</label>
+        <input type="password" id="pNew" class="pin" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">
+      </div>
+      <div class="field">
+        <label for="pNew2">Again</label>
+        <input type="password" id="pNew2" class="pin" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">
+      </div>
+    </div>
+    <div class="authrow"><button class="solid" id="pinSave">Save PIN</button></div>
+    <p class="authmsg" id="pinMsg" role="status"></p>
+  </div>
 
   <div class="board">
     <section aria-labelledby="dutiesH">
@@ -992,8 +1019,66 @@ var SEED_CONFIG = {
   function signOut(){
     clearSession();
     session = null;
+    closePinPanel();
     $("authForm").hidden = true;
     showGate();
+  }
+
+  /* ================= changing a PIN ================= */
+  var pinTarget = null;   // {room, requireCurrent}
+
+  function openPinPanel(room, requireCurrent){
+    if(!subtle){ showErr("This browser can't hash PINs, so they can't be changed here."); return; }
+    pinTarget = {room:room, requireCurrent:!!requireCurrent};
+    var m = memberById("r"+room);
+    $("pinPanelH").textContent = requireCurrent ? "Change your PIN" : "Reset room " + room + "'s PIN";
+    $("pinPanelSub").textContent = requireCurrent
+      ? "Four digits. There's no reset if you forget it — ask room " + ADMIN_ROOM + "."
+      : (m ? m.name : "Room " + room) + " will need the new PIN to sign in. Tell them what you set.";
+    $("fCur").hidden = !requireCurrent;
+    $("pCur").value = ""; $("pNew").value = ""; $("pNew2").value = "";
+    $("pinMsg").textContent = ""; $("pinMsg").className = "authmsg";
+    $("pinSave").disabled = false;
+    $("pinPanel").hidden = false;
+    $("pinPanel").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"nearest"});
+    (requireCurrent ? $("pCur") : $("pNew")).focus();
+  }
+  function closePinPanel(){ $("pinPanel").hidden = true; pinTarget = null; }
+  function pinMsg(t, ok){
+    $("pinMsg").textContent = t;
+    $("pinMsg").className = "authmsg" + (ok ? " ok" : "");
+  }
+
+  function savePin(){
+    if(!pinTarget) return;
+    var room = pinTarget.room, cur = $("pCur").value, a = $("pNew").value, b = $("pNew2").value;
+    if(pinTarget.requireCurrent && !/^\d{4}$/.test(cur)){ pinMsg("Enter your current PIN."); $("pCur").focus(); return; }
+    if(!/^\d{4}$/.test(a)){ pinMsg("The new PIN needs 4 digits."); $("pNew").focus(); return; }
+    if(a !== b){ pinMsg("The two new PINs don't match."); $("pNew2").value = ""; $("pNew2").focus(); return; }
+
+    $("pinSave").disabled = true;
+    pinMsg("Saving…", true);
+    store.getAccount(room).then(function(acct){
+      if(!acct){ throw new Error("gone"); }
+      var check = pinTarget.requireCurrent ? checkHash(cur, acct) : Promise.resolve(true);
+      return check.then(function(ok){
+        if(!ok){ var e = new Error("bad"); e.badPin = true; throw e; }
+        return makeHash(a).then(function(h){
+          var next = Object.assign({}, acct, {hash:h.hash, salt:h.salt, iter:h.iter, alg:h.alg});
+          delete next.room;
+          return store.saveAccount(room, next);
+        });
+      });
+    }).then(function(){
+      pinMsg("PIN changed.", true);
+      pinFails[room] = null;
+      setTimeout(closePinPanel, 1200);
+    }).catch(function(e){
+      $("pinSave").disabled = false;
+      if(e && e.badPin){ pinMsg("That's not your current PIN."); $("pCur").value = ""; $("pCur").focus(); }
+      else if(e && e.message === "gone"){ pinMsg("That room no longer exists."); }
+      else { pinMsg("Couldn't save the new PIN. Try again."); }
+    });
   }
 
   /* ================= board rendering ================= */
@@ -1018,8 +1103,12 @@ var SEED_CONFIG = {
     $("sessionBox").innerHTML =
       '<span class="badge" style="--sc:'+colorVar(m)+'"><span class="rm">RM '+session.room+"</span>"+
       '<span class="nm">'+esc(m ? m.name : session.name)+"</span></span>"+
+      '<button class="ghost tiny" id="changePin">PIN</button>'+
       '<button class="ghost tiny" id="signOut">Sign out</button>';
     $("signOut").addEventListener("click", signOut);
+    $("changePin").addEventListener("click", function(){
+      openPinPanel(session.room, true);
+    });
   }
 
   function doneMap(){
@@ -1236,6 +1325,8 @@ var SEED_CONFIG = {
           (draft.zones||[]).map(function(z){
             return '<option value="'+esc(z.id)+'"'+(z.id===m.zone?" selected":"")+">"+esc(z.name)+"</option>";
           }).join("")+"</select>" : "")+
+        (m.room === ADMIN_ROOM ? "" :
+          '<button class="ghost tiny" data-resetpin="'+m.room+'" title="Set a new PIN for room '+m.room+'"'+dis+">Reset PIN</button>")+
         (m.room === ADMIN_ROOM
           ? '<span class="rotlab" title="Room '+ADMIN_ROOM+' runs this board and cannot be released here">admin</span>'
           : '<button class="x" data-release="'+m.room+'" title="Release this room" aria-label="Release room '+m.room+'"'+dis+">×</button>")+
@@ -1369,6 +1460,18 @@ var SEED_CONFIG = {
     });
   });
 
+  $("pinCancel").addEventListener("click", closePinPanel);
+  $("pinSave").addEventListener("click", savePin);
+  ["pCur","pNew","pNew2"].forEach(function(id, i, all){
+    var el = $(id);
+    el.addEventListener("input", function(){
+      var clean = this.value.replace(/\D/g, "").slice(0,4);
+      if(clean !== this.value) this.value = clean;
+      if(clean.length === 4 && i < all.length - 1) $(all[i+1]).focus();
+    });
+    el.addEventListener("keydown", function(e){ if(e.key === "Enter") savePin(); });
+  });
+
   $("prevWeek").addEventListener("click", function(){ goWeek(curWeek-1); });
   $("nextWeek").addEventListener("click", function(){ goWeek(curWeek+1); });
   $("thisWeek").addEventListener("click", function(){ goWeek(thisWeek); });
@@ -1468,6 +1571,8 @@ var SEED_CONFIG = {
     store.saveAccount(room, next).catch(function(e){ onDbError(e, "updating that room"); });
   });
   $("mMembers").addEventListener("click", function(ev){
+    var rp = ev.target.closest && ev.target.closest("[data-resetpin]");
+    if(rp && !rp.disabled){ openPinPanel(parseInt(rp.getAttribute("data-resetpin"), 10), false); return; }
     var b = ev.target.closest && ev.target.closest("[data-release]");
     if(!b) return;
     var room = parseInt(b.getAttribute("data-release"), 10);
