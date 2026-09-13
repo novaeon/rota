@@ -1,0 +1,1552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0F5C4A">
+<style>
+  :root{ color-scheme: light dark; }
+  html,body{margin:0}
+  img{max-width:100%}
+  [hidden]{display:none !important}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<title>Chore Rota &amp; Bonuses</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+</head>
+<body>
+<style>
+  :root{
+    --paper:#F1F3EE;
+    --surface:#FBFCF9;
+    --surface-2:#E9EDE5;
+    --ink:#16211C;
+    --muted:#5E6B63;
+    --faint:#8B968F;
+    --line:#D7DDD3;
+    --line-strong:#BCC5B8;
+    --pine:#0F5C4A;
+    --pine-soft:#DCEBE3;
+    --amber:#A96D0C;
+    --brick:#A8321F;
+    --shadow:0 1px 0 rgba(22,33,28,.06), 0 2px 10px -6px rgba(22,33,28,.25);
+
+    --c-pine:#0F5C4A;
+    --c-amber:#A96D0C;
+    --c-indigo:#3B4E8C;
+    --c-plum:#7A3B63;
+    --c-clay:#9A5A34;
+    --c-teal:#186B78;
+
+    --fd:"Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+    --fb:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --fm:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#101512; --surface:#171E1A; --surface-2:#1E2622;
+      --ink:#E6EBE4; --muted:#98A59D; --faint:#75837B;
+      --line:#2A342E; --line-strong:#3A473F;
+      --pine:#54C3A3; --pine-soft:#17332B; --amber:#E8B04B; --brick:#E0705A;
+      --shadow:0 1px 0 rgba(0,0,0,.4), 0 2px 12px -6px rgba(0,0,0,.7);
+      --c-pine:#54C3A3; --c-amber:#E8B04B; --c-indigo:#8CA0E0;
+      --c-plum:#D08CB6; --c-clay:#DB9C6E; --c-teal:#5FC0CE;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#101512; --surface:#171E1A; --surface-2:#1E2622;
+    --ink:#E6EBE4; --muted:#98A59D; --faint:#75837B;
+    --line:#2A342E; --line-strong:#3A473F;
+    --pine:#54C3A3; --pine-soft:#17332B; --amber:#E8B04B; --brick:#E0705A;
+    --shadow:0 1px 0 rgba(0,0,0,.4), 0 2px 12px -6px rgba(0,0,0,.7);
+    --c-pine:#54C3A3; --c-amber:#E8B04B; --c-indigo:#8CA0E0;
+    --c-plum:#D08CB6; --c-clay:#DB9C6E; --c-teal:#5FC0CE;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--fb); font-size:15px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding-inline:18px; padding-block:0 56px;}
+  [hidden]{display:none !important}
+
+  button{font:inherit; color:inherit; cursor:pointer}
+  .ghost{
+    background:transparent; border:1px solid var(--line-strong); color:var(--muted);
+    border-radius:2px; padding:5px 9px; line-height:1; font-size:13px;
+  }
+  .ghost:hover{border-color:var(--ink); color:var(--ink)}
+  .ghost[disabled]{opacity:.4; cursor:not-allowed}
+  .ghost.tiny{font-size:11px; padding:3px 6px; letter-spacing:.06em; text-transform:uppercase}
+  .solid{
+    background:var(--pine); color:var(--paper); border:1px solid var(--pine);
+    border-radius:2px; padding:8px 14px; font-weight:600; font-size:14px;
+  }
+  .solid:hover{filter:brightness(1.08)}
+  .solid[disabled]{opacity:.45; cursor:not-allowed; filter:none}
+
+  select, input[type="text"], input[type="number"], input[type="password"], textarea{
+    font:inherit; color:var(--ink); background:var(--surface);
+    border:1px solid var(--line-strong); border-radius:2px; padding:7px 9px;
+  }
+  select:focus-visible, input:focus-visible, textarea:focus-visible,
+  button:focus-visible, [tabindex]:focus-visible{outline:2px solid var(--pine); outline-offset:2px}
+
+  /* ---------- gate ---------- */
+  .gate{display:flex; justify-content:center; padding-block:44px 60px; padding-inline:18px}
+  .gatecard{width:100%; max-width:640px}
+  .gatemark{
+    font-family:var(--fd); font-weight:700; font-size:32px; letter-spacing:.045em;
+    text-transform:uppercase; line-height:1; margin-bottom:4px;
+  }
+  .gatemark em{font-style:normal; color:var(--pine)}
+  .gatehead{
+    font-family:var(--fd); text-transform:uppercase; letter-spacing:.11em;
+    font-size:14px; font-weight:700; color:var(--muted);
+    padding-bottom:10px; border-bottom:2px solid var(--ink); margin-bottom:16px;
+  }
+  .gatehint{font-size:13.5px; color:var(--muted); margin:0 0 18px; max-width:52ch}
+
+  .rooms{display:grid; grid-template-columns:repeat(auto-fill, minmax(96px,1fr)); gap:8px}
+  .room{
+    display:flex; flex-direction:column; gap:2px; align-items:flex-start; text-align:left;
+    background:var(--surface); border:1px solid var(--line-strong); border-radius:2px;
+    padding:10px 10px 9px; min-height:74px;
+  }
+  .room .n{
+    font-family:var(--fd); font-size:26px; font-weight:700; line-height:1;
+    letter-spacing:.03em; color:var(--faint);
+  }
+  .room .who{
+    font-size:12.5px; font-weight:600; line-height:1.25; word-break:break-word;
+    overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  }
+  .room .vac{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+  .room:hover{border-color:var(--ink)}
+  .room.taken{border-left:4px solid var(--rc); padding-left:8px}
+  .room.taken .n{color:var(--rc)}
+  .room.taken .who{color:var(--ink)}
+  @media (prefers-reduced-motion: no-preference){ .room{transition:border-color .14s ease} }
+
+  .authform{
+    margin-top:20px; background:var(--surface); border:1px solid var(--line);
+    border-left:4px solid var(--rc, var(--pine)); border-radius:3px;
+    padding:18px; box-shadow:var(--shadow);
+  }
+  .authform h3{
+    font-family:var(--fd); text-transform:uppercase; letter-spacing:.08em;
+    font-size:20px; font-weight:600; margin:0 0 3px;
+  }
+  .authform .sub{font-size:13px; color:var(--muted); margin:0 0 14px}
+  .field{display:flex; flex-direction:column; gap:4px; margin-bottom:11px}
+  .field label{font-size:11px; letter-spacing:.11em; text-transform:uppercase; font-weight:600; color:var(--muted)}
+  .swatches{display:flex; gap:7px; flex-wrap:wrap}
+  .sw{width:26px; height:26px; border-radius:50%; border:2px solid transparent; padding:0; background:var(--swc)}
+  .sw[aria-pressed="true"]{border-color:var(--ink); box-shadow:inset 0 0 0 2px var(--surface)}
+  input.pin{
+    width:132px; font-family:var(--fm); font-size:22px; font-weight:600;
+    letter-spacing:.42em; text-indent:.42em; text-align:center; padding:8px 6px;
+  }
+  .pinhelp{font-size:12px; color:var(--faint); margin:-4px 0 11px}
+  .authrow{display:flex; gap:9px; align-items:center; margin-top:15px; flex-wrap:wrap}
+  .authmsg{font-size:13px; color:var(--brick); min-height:1.3em; margin-top:9px}
+  .authmsg.ok{color:var(--pine)}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    display:flex; flex-wrap:wrap; align-items:center; gap:14px 20px;
+    padding-block:18px 14px; border-bottom:2px solid var(--ink);
+  }
+  .brand{display:flex; align-items:baseline; gap:10px; margin-right:auto; min-width:0}
+  .brand .mark{
+    font-family:var(--fd); font-weight:700; font-size:30px; letter-spacing:.045em;
+    text-transform:uppercase; line-height:1; white-space:nowrap;
+  }
+  .brand .mark em{font-style:normal; color:var(--pine)}
+  .brand .house{
+    font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
+    font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .weeknav{display:flex; align-items:center; gap:6px}
+  .weeknav .label{
+    font-family:var(--fd); text-transform:uppercase; letter-spacing:.07em;
+    font-weight:600; font-size:19px; padding-inline:8px; white-space:nowrap;
+  }
+  .weeknav .label .yr{color:var(--faint)}
+  .session{display:flex; align-items:center; gap:9px; font-size:13px}
+  .session .badge{
+    display:inline-flex; align-items:baseline; gap:6px; padding:3px 8px;
+    border:1px solid var(--sc); border-left-width:4px; border-radius:2px;
+  }
+  .session .badge .rm{font-family:var(--fm); font-size:11px; color:var(--sc); font-weight:600}
+  .session .badge .nm{font-weight:600}
+
+  /* ---------- notices ---------- */
+  .notice{
+    display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center;
+    margin-top:14px; padding:10px 14px; border:1px solid var(--line-strong);
+    border-left:4px solid var(--amber); background:var(--surface); border-radius:2px;
+    font-size:13.5px; color:var(--muted);
+  }
+  .notice strong{color:var(--ink); font-weight:600}
+  .notice .spacer{margin-left:auto}
+  .notice.err{border-left-color:var(--brick)}
+
+  /* ---------- board ---------- */
+  .board{display:grid; grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr); gap:34px; margin-top:26px; align-items:start}
+  @media (max-width:900px){ .board{grid-template-columns:1fr; gap:30px} }
+
+  h2.sec{
+    font-family:var(--fd); text-transform:uppercase; letter-spacing:.11em;
+    font-size:15px; font-weight:700; margin:0; color:var(--ink);
+    display:flex; align-items:baseline; gap:10px;
+  }
+  h2.sec .sub{font-family:var(--fb); font-size:11.5px; letter-spacing:.02em; text-transform:none; color:var(--faint); font-weight:400}
+  .sechead{display:flex; align-items:center; gap:12px; padding-bottom:8px; border-bottom:1px solid var(--line); margin-bottom:14px}
+  .sechead .right{margin-left:auto; display:flex; gap:6px; align-items:center}
+
+  .lanes{display:flex; flex-direction:column; gap:2px}
+  .lane{display:grid; grid-template-columns:140px minmax(0,1fr); gap:16px; padding:14px 0; border-top:1px solid var(--line)}
+  .lane:first-child{border-top:none}
+  @media (max-width:560px){ .lane{grid-template-columns:1fr; gap:9px} }
+  .lane.me{background:linear-gradient(90deg, var(--surface) 0%, transparent 70%); box-shadow:inset 3px 0 0 var(--lanec); padding-left:12px; margin-left:-12px}
+
+  .who2{display:flex; flex-direction:column; gap:2px; min-width:0}
+  .who2 .rm{font-family:var(--fm); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+  .who2 .nm{
+    font-family:var(--fd); font-size:22px; font-weight:600; letter-spacing:.03em;
+    text-transform:uppercase; line-height:1.05; color:var(--lanec);
+    overflow:hidden; text-overflow:ellipsis;
+  }
+  .who2 .tally{font-family:var(--fm); font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums}
+  .who2 .youtag{
+    display:inline-block; font-size:9.5px; letter-spacing:.14em; text-transform:uppercase;
+    font-weight:600; color:var(--paper); background:var(--lanec); padding:1px 5px; border-radius:2px; width:fit-content; margin-top:2px;
+  }
+
+  .duties{display:flex; flex-wrap:wrap; gap:7px; align-content:flex-start}
+  .duty{
+    display:inline-flex; align-items:center; gap:8px; text-align:left;
+    background:var(--surface); border:1px solid var(--line-strong); border-radius:2px;
+    padding:7px 11px 7px 8px; max-width:100%;
+  }
+  .duty:hover:not([disabled]){border-color:var(--ink)}
+  .duty[disabled]{cursor:default}
+  .duty .box{
+    flex:none; width:16px; height:16px; border:1.5px solid var(--line-strong); border-radius:2px;
+    display:grid; place-items:center; background:transparent;
+  }
+  .duty .box svg{width:11px; height:11px; opacity:0; transform:scale(.6); stroke:var(--surface)}
+  .duty .t{font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:34ch}
+  .duty .p{font-family:var(--fm); font-size:11px; color:var(--faint); font-variant-numeric:tabular-nums; flex:none}
+  .duty .rot{font-size:11px; color:var(--faint); flex:none}
+  .duty.done{background:var(--pine-soft); border-color:var(--pine)}
+  .duty.done .box{background:var(--pine); border-color:var(--pine)}
+  .duty.done .box svg{opacity:1; transform:scale(1)}
+  .duty.done .t{color:var(--muted); text-decoration:line-through; text-decoration-thickness:1px}
+  .duty.done .p{color:var(--pine)}
+  .duty.late{border-color:var(--brick)}
+  .duty.late .box{border-color:var(--brick)}
+  @media (prefers-reduced-motion: no-preference){
+    .duty .box svg{transition:opacity .16s ease, transform .16s cubic-bezier(.2,1.5,.4,1)}
+    .duty{transition:background .15s ease, border-color .15s ease}
+  }
+  .lane .empty{font-size:13px; color:var(--faint); font-style:italic; padding-top:4px}
+
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:16px 16px 18px; box-shadow:var(--shadow)}
+  .panel + .panel{margin-top:22px}
+
+  .stand{display:flex; flex-direction:column; gap:13px}
+  .row{display:grid; grid-template-columns:1fr auto; gap:3px 10px}
+  .row .nm{font-size:13.5px; font-weight:600}
+  .row .nm .rk{font-family:var(--fm); font-size:11px; color:var(--faint); margin-right:6px}
+  .row .nm .rmn{font-family:var(--fm); font-size:11px; color:var(--faint); margin-left:6px}
+  .row .pts{font-family:var(--fm); font-weight:600; font-size:14px; font-variant-numeric:tabular-nums}
+  .bar{grid-column:1/-1; display:flex; height:9px; background:var(--surface-2); border-radius:1px; overflow:hidden}
+  .bar i{display:block; height:100%}
+  @media (prefers-reduced-motion: no-preference){ .bar i{transition:width .3s ease} }
+  .bar .d{background:var(--pine)}
+  .bar .b{background:var(--amber)}
+  .legend{display:flex; gap:14px; font-size:11px; color:var(--muted); letter-spacing:.04em; margin-top:14px; padding-top:12px; border-top:1px solid var(--line)}
+  .legend span{display:inline-flex; align-items:center; gap:5px}
+  .legend i{width:9px; height:9px; border-radius:1px; display:block}
+  .season{margin-top:14px; padding-top:12px; border-top:1px solid var(--line)}
+  .season table{width:100%; border-collapse:collapse; font-size:13px}
+  .season th{text-align:left; font-family:var(--fd); text-transform:uppercase; letter-spacing:.1em; font-size:11px; color:var(--muted); font-weight:600; padding-bottom:5px}
+  .season td{padding:3px 0; border-top:1px solid var(--line)}
+  .season td.n{text-align:right; font-family:var(--fm); font-variant-numeric:tabular-nums}
+
+  .bonusform{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px}
+  .bonusform .full{grid-column:1/-1}
+  .bonusform select, .bonusform input{width:100%}
+  .presets{display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px}
+  .preset{background:transparent; border:1px dashed var(--line-strong); color:var(--muted); border-radius:2px; padding:4px 8px; font-size:12px}
+  .preset:hover{border-style:solid; border-color:var(--amber); color:var(--amber)}
+  .blog{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
+  .blog li{display:flex; gap:10px; align-items:baseline; padding:9px 0; border-top:1px solid var(--line)}
+  .blog li:first-child{border-top:none}
+  .blog .star{color:var(--amber); flex:none; font-size:12px; line-height:1.3}
+  .blog .body{flex:1; min-width:0}
+  .blog .ttl{font-size:13.5px}
+  .blog .meta{font-size:11.5px; color:var(--faint)}
+  .blog .pp{font-family:var(--fm); font-size:12.5px; font-weight:600; color:var(--amber); font-variant-numeric:tabular-nums; flex:none}
+  .blog .del{background:none; border:none; color:var(--faint); font-size:14px; line-height:1; padding:0 2px; flex:none; visibility:hidden}
+  .blog li:hover .del, .blog .del:focus-visible{visibility:visible}
+  .blog .del:hover{color:var(--brick)}
+  .none{font-size:13px; color:var(--faint); font-style:italic}
+
+  .manage{margin-top:38px; border-top:2px solid var(--ink); padding-top:20px}
+  .mgrid{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:26px; margin-top:16px}
+  .mlist{display:flex; flex-direction:column; gap:7px; margin-bottom:12px}
+  .mrow{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
+  .mrow input[type="text"]{flex:1; min-width:0}
+  .mrow input.pts{width:56px; text-align:right; font-family:var(--fm)}
+  .mrow select{max-width:140px}
+  .mrow .rmtag{font-family:var(--fm); font-size:11px; color:var(--faint); width:44px; flex:none}
+  .mrow .x{background:none; border:none; color:var(--faint); font-size:15px; padding:2px 4px; line-height:1}
+  .mrow .x:hover{color:var(--brick)}
+  .seg{display:flex; gap:0; margin-bottom:10px; flex-wrap:wrap}
+  .seg button{
+    flex:1; min-width:52px; text-align:center; background:var(--surface);
+    border:1px solid var(--line-strong); border-left-width:0; padding:7px 8px; border-radius:0;
+  }
+  .seg button:first-child{border-radius:2px 0 0 2px; border-left-width:1px}
+  .seg button:last-child{border-radius:0 2px 2px 0}
+  .seg button .sl{
+    display:block; font-family:var(--fd); text-transform:uppercase;
+    letter-spacing:.06em; font-weight:600; font-size:16px;
+  }
+  .seg button[aria-pressed="true"]{background:var(--pine-soft); border-color:var(--pine); position:relative; z-index:1}
+  .seg button[aria-pressed="true"] .sl{color:var(--pine)}
+  .seg button[disabled]{opacity:.5; cursor:not-allowed}
+  .mhint{font-size:12px; color:var(--faint); margin:0 0 10px}
+  .msave{display:flex; gap:10px; align-items:center; margin-top:18px; padding-top:16px; border-top:1px solid var(--line); flex-wrap:wrap}
+  .msave .status{font-size:12.5px; color:var(--muted)}
+  .rotlab{display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; white-space:nowrap}
+
+  footer.foot{margin-top:34px; font-size:12px; color:var(--faint); display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--pine);display:inline-block;margin-right:5px}
+  .dot.off{background:var(--faint)}
+</style>
+
+<!-- ============ SIGN-IN GATE ============ -->
+<div class="gate" id="gate">
+  <div class="gatecard">
+    <div class="gatemark">Rota<em>&amp;</em>Bonus</div>
+    <div class="gatehead" id="gateHead">Which room are you?</div>
+    <p class="gatehint" id="gateHint">Loading…</p>
+    <div class="rooms" id="rooms"></div>
+
+    <div class="authform" id="authForm" hidden>
+      <h3 id="authTitle">Room</h3>
+      <p class="sub" id="authSub"></p>
+      <div class="field" id="fName" hidden>
+        <label for="iName">Your name</label>
+        <input type="text" id="iName" maxlength="24" autocomplete="nickname">
+      </div>
+      <div class="field" id="fZone" hidden>
+        <label for="iZone">Group</label>
+        <select id="iZone"></select>
+      </div>
+      <div class="field" id="fColor" hidden>
+        <label id="colorLabel">Colour</label>
+        <div class="swatches" id="swatches" role="group" aria-labelledby="colorLabel"></div>
+      </div>
+      <div class="field">
+        <label for="iPass" id="passLabel">PIN</label>
+        <input type="password" id="iPass" class="pin" inputmode="numeric" maxlength="4"
+               autocomplete="off" placeholder="••••" aria-describedby="pinHelp">
+      </div>
+      <div class="field" id="fPass2" hidden>
+        <label for="iPass2">PIN again</label>
+        <input type="password" id="iPass2" class="pin" inputmode="numeric" maxlength="4"
+               autocomplete="off" placeholder="••••">
+      </div>
+      <p id="pinHelp" class="pinhelp" hidden>There's no way to reset it.</p>
+      <div class="authrow">
+        <button class="solid" id="authGo">Sign in</button>
+        <button class="ghost" id="authBack">Back to rooms</button>
+        <label style="font-size:12.5px; color:var(--muted); display:inline-flex; gap:6px; align-items:center">
+          <input type="checkbox" id="iRemember" checked> Stay signed in
+        </label>
+      </div>
+      <p class="authmsg" id="authMsg" role="status"></p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ BOARD ============ -->
+<div class="wrap" id="app" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark">Rota<em>&amp;</em>Bonus</span>
+      <span class="house" id="houseName">Home</span>
+    </div>
+    <nav class="weeknav" aria-label="Week">
+      <button class="ghost" id="prevWeek" title="Previous week" aria-label="Previous week">&#8249;</button>
+      <span class="label" id="weekLabel">&nbsp;</span>
+      <button class="ghost" id="nextWeek" title="Next week" aria-label="Next week">&#8250;</button>
+      <button class="ghost tiny" id="thisWeek" hidden>This week</button>
+    </nav>
+    <div class="session" id="sessionBox"></div>
+  </header>
+
+  <div class="notice err" id="errNotice" hidden><span id="errText"></span></div>
+
+  <div class="board">
+    <section aria-labelledby="dutiesH">
+      <div class="sechead">
+        <h2 class="sec" id="dutiesH">Weekly duties <span class="sub" id="dutiesSub"></span></h2>
+        <span class="right"><button class="ghost tiny" id="manageBtn">Manage board</button></span>
+      </div>
+      <div class="lanes" id="lanes"></div>
+    </section>
+
+    <aside>
+      <div class="panel" aria-labelledby="standH">
+        <div class="sechead"><h2 class="sec" id="standH">Standings <span class="sub" id="standSub">this week</span></h2></div>
+        <div class="stand" id="stand"></div>
+        <div class="legend">
+          <span><i style="background:var(--pine)"></i> Duties</span>
+          <span><i style="background:var(--amber)"></i> Bonuses</span>
+        </div>
+        <div class="season">
+          <button class="ghost tiny" id="seasonBtn">Show last 8 weeks</button>
+          <div id="seasonOut" hidden></div>
+        </div>
+      </div>
+
+      <div class="panel" aria-labelledby="bonusH">
+        <div class="sechead"><h2 class="sec" id="bonusH">Bonuses</h2></div>
+        <div class="presets" id="presets"></div>
+        <div class="bonusform">
+          <select id="bWho" aria-label="Who did it"></select>
+          <input id="bPts" type="number" min="0" max="99" step="1" value="3" aria-label="Points" title="Points">
+          <input id="bWhat" class="full" type="text" placeholder="e.g. fixed the shower door" aria-label="What they did">
+          <button class="solid full" id="bAdd">Log bonus</button>
+        </div>
+        <ul class="blog" id="blog"></ul>
+      </div>
+    </aside>
+  </div>
+
+  <section class="manage" id="manage" hidden aria-labelledby="manageH">
+    <div class="sechead">
+      <h2 class="sec" id="manageH">Manage board</h2>
+      <span class="right"><button class="ghost tiny" id="closeManage">Close</button></span>
+    </div>
+    <div class="notice" id="notOwner" hidden><span id="notOwnerText"></span></div>
+    <div class="mgrid">
+      <div>
+        <h3 class="sec" style="font-size:13px">Rooms</h3>
+        <p class="mhint">People claim their own rooms. Releasing one frees it up; the points stay with the room.</p>
+        <div class="mrow" style="margin-bottom:16px">
+          <input type="text" id="mHouse" placeholder="Household name" aria-label="Household name">
+        </div>
+        <p class="mhint" style="margin-bottom:6px">Groups — a duty can be limited to one</p>
+        <div class="mlist" id="mZones"></div>
+        <button class="ghost tiny" id="addZone" style="margin-bottom:18px">+ Add group</button>
+        <div class="mlist" id="mMembers"></div>
+      </div>
+      <div>
+        <h3 class="sec" style="font-size:13px">Weekly duties</h3>
+        <p class="mhint" style="margin-bottom:6px">Rooms on duty each week</p>
+        <div class="seg" id="mRotMode" role="group" aria-label="Rooms on duty each week"></div>
+        <p class="mhint" id="crewPreview"></p>
+        <p class="mhint">Pinned duties (📌) sit out the rotation and stay with one room.</p>
+        <div class="mlist" id="mChores"></div>
+        <button class="ghost tiny" id="addChore">+ Add duty</button>
+      </div>
+      <div>
+        <h3 class="sec" style="font-size:13px">Bonus presets</h3>
+        <p class="mhint">One-tap buttons on the bonus form.</p>
+        <div class="mlist" id="mPresets"></div>
+        <button class="ghost tiny" id="addPreset">+ Add preset</button>
+      </div>
+    </div>
+    <div class="msave">
+      <button class="solid" id="saveCfg">Save board</button>
+      <button class="ghost" id="revertCfg">Discard changes</button>
+      <span class="status" id="saveStatus"></span>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span id="syncState"><span class="dot off"></span>Connecting…</span>
+  </footer>
+</div>
+
+<script>
+/* Firebase project "rota-544a6". These keys are meant to be public in a web
+   app — the Firestore rules are what control access, not the key. */
+var FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDtxJipSOhUcq4rwOFjNvScW7ED0oqAhX0",
+  authDomain:        "rota-544a6.firebaseapp.com",
+  projectId:         "rota-544a6",
+  storageBucket:     "rota-544a6.firebasestorage.app",
+  messagingSenderId: "1080300763213",
+  appId:             "1:1080300763213:web:287f866a9312928fc14404",
+  measurementId:     "G-Z1VYZG4L08"
+};
+
+/* Written to the database the first time the board runs, if it's empty.
+   After that the Manage panel is the source of truth and this is ignored. */
+var SEED_CONFIG = {
+  name: "Aan't Verlaat 33",
+  crew: 2,
+  zones: [{id:"z1", name:"Kitchen 1"}, {id:"z2", name:"Kitchen 2"}],
+  chores: [
+    {id:"c_trash",    title:"Take out trash",                 points:2, rotate:true},
+    {id:"c_vacuum",   title:"Vacuum common areas",            points:4, rotate:true},
+    {id:"c_floors",   title:"Mop kitchen & hall",             points:3, rotate:true},
+    {id:"c_kitchen",  title:"Kitchen 1 wipe-down & stovetop", points:4, rotate:true, zone:"z1"},
+    {id:"c_kitchen2", title:"Kitchen 2 wipe-down & stovetop", points:4, rotate:true, zone:"z2"}
+  ],
+  bonusPresets: [
+    {title:"Cooked dinner", points:3},
+    {title:"Fixed something", points:5},
+    {title:"Grocery run", points:3},
+    {title:"Cleaned up after guests", points:4},
+    {title:"Covered someone's duty", points:4},
+    {title:"Errands & admin", points:2}
+  ]
+};
+
+(function(){
+  "use strict";
+
+  /* ================= constants & small helpers ================= */
+  var ROOMS = 11;
+  var ADMIN_ROOM = 7;               // hard-wired: only room 7 manages the board
+  var ANCHOR = Date.UTC(2024,0,1);          // a Monday
+  var DAY = 86400000;
+  var COLORS = ["pine","indigo","clay","plum","teal","amber"];
+  var PBKDF2_ITER = 210000;
+  var SESSION_DAYS = 60;
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function uid(p){ return p + Math.random().toString(36).slice(2,9); }
+
+  function mondayOf(d){
+    var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    x.setDate(x.getDate() - ((x.getDay()+6)%7));
+    return x;
+  }
+  function weekIndexOf(m){ return Math.round((Date.UTC(m.getFullYear(),m.getMonth(),m.getDate()) - ANCHOR)/(7*DAY)); }
+  function mondayFromIndex(i){ var d = new Date(ANCHOR + i*7*DAY); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); }
+  function weekKey(i){ return "w"+i; }
+  function labelFor(i){
+    var a = mondayFromIndex(i), b = new Date(a.getFullYear(),a.getMonth(),a.getDate()+6);
+    var mo = function(d){ return d.toLocaleDateString(undefined,{month:"short"}); };
+    return { core: a.getMonth()===b.getMonth()
+      ? mo(a)+" "+a.getDate()+"–"+b.getDate()
+      : mo(a)+" "+a.getDate()+" – "+mo(b)+" "+b.getDate(), year:a.getFullYear() };
+  }
+
+  /* ================= session storage (cookie + fallback) ================= */
+  function writeSession(val, persist){
+    var s = JSON.stringify(val);
+    try{
+      document.cookie = "rota_session=" + encodeURIComponent(s) +
+        ";path=/;max-age=" + (persist ? SESSION_DAYS*86400 : "") + ";samesite=none;secure";
+    }catch(e){}
+    try{ (persist ? localStorage : sessionStorage).setItem("rota.session", s); }catch(e){}
+  }
+  function readSession(){
+    var raw = null;
+    try{
+      var m = document.cookie.match(/(?:^|;\s*)rota_session=([^;]*)/);
+      if(m) raw = decodeURIComponent(m[1]);
+    }catch(e){}
+    if(!raw){ try{ raw = localStorage.getItem("rota.session") || sessionStorage.getItem("rota.session"); }catch(e){} }
+    if(!raw) return null;
+    try{
+      var v = JSON.parse(raw);
+      if(v && v.exp && Date.now() > v.exp) return null;
+      return v;
+    }catch(e){ return null; }
+  }
+  function clearSession(){
+    try{ document.cookie = "rota_session=;path=/;max-age=0;samesite=none;secure"; }catch(e){}
+    try{ localStorage.removeItem("rota.session"); sessionStorage.removeItem("rota.session"); }catch(e){}
+  }
+  function ls(k,v){
+    try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){}
+    return null;
+  }
+
+  /* ================= password hashing ================= */
+  var subtle = (window.crypto && window.crypto.subtle) || null;
+  function b64(buf){
+    var a = new Uint8Array(buf), s = "";
+    for(var i=0;i<a.length;i++) s += String.fromCharCode(a[i]);
+    return btoa(s);
+  }
+  function unb64(s){
+    var bin = atob(s), a = new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) a[i] = bin.charCodeAt(i);
+    return a;
+  }
+  function derive(pw, salt, iter){
+    return subtle.importKey("raw", new TextEncoder().encode(pw), {name:"PBKDF2"}, false, ["deriveBits"])
+      .then(function(key){
+        return subtle.deriveBits({name:"PBKDF2", salt:salt, iterations:iter, hash:"SHA-256"}, key, 256);
+      }).then(b64);
+  }
+  function makeHash(pw){
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    return derive(pw, salt, PBKDF2_ITER).then(function(h){
+      return {hash:h, salt:b64(salt), iter:PBKDF2_ITER, alg:"PBKDF2-SHA256"};
+    });
+  }
+  function checkHash(pw, acct){
+    if(!acct || !acct.hash) return Promise.resolve(false);
+    return derive(pw, unb64(acct.salt), acct.iter || PBKDF2_ITER)
+      .then(function(h){ return h === acct.hash; });
+  }
+
+  /* ================= stores ================= */
+  function FirebaseStore(fs){
+    var unsubEnt = null;
+    this.kind = "db";
+
+    function docSnap(s){ return s.exists ? s.data() : null; }
+
+    this.watchConfig = function(cb){
+      fs.doc("config/household").onSnapshot(function(s){ cb(docSnap(s)); },
+        function(e){ onDbError(e, "reading the board"); });
+    };
+    this.saveConfig = function(cfg){ return fs.doc("config/household").set(cfg); };
+
+    // Create the board only if nobody has yet — safe with several tabs open at once.
+    this.seedConfig = function(seed){
+      var ref = fs.doc("config/household");
+      return fs.runTransaction(function(tx){
+        return tx.get(ref).then(function(s){ if(!s.exists) tx.set(ref, seed); });
+      }).catch(function(){});
+    };
+
+    this.watchAccounts = function(cb){
+      fs.collection("accounts").onSnapshot(function(snap){
+        cb(snap.docs.map(function(d){
+          return Object.assign({room:parseInt(d.id,10)}, d.data());
+        }));
+      }, function(e){ onDbError(e, "reading the room list"); });
+    };
+    this.getAccount = function(room){
+      return fs.doc("accounts/"+room).get().then(function(s){
+        return s.exists ? Object.assign({room:room}, s.data()) : null;
+      });
+    };
+    // Atomic claim: the transaction fails rather than overwriting an occupied room.
+    this.claimRoom = function(room, data){
+      var ref = fs.doc("accounts/"+room);
+      return fs.runTransaction(function(tx){
+        return tx.get(ref).then(function(s){
+          if(s.exists && s.data() && s.data().hash){ var err = new Error("taken"); err.taken = true; throw err; }
+          tx.set(ref, data);
+        });
+      }).then(function(){ return {ok:true}; })
+        .catch(function(e){
+          if(e && e.taken) return {ok:false, reason:"taken"};
+          throw e;
+        });
+    };
+    this.saveAccount = function(room, data){ return fs.doc("accounts/"+room).set(data); };
+    this.releaseRoom = function(room){ return fs.doc("accounts/"+room).delete(); };
+
+    this.watchEntries = function(w, cb){
+      if(unsubEnt){ unsubEnt(); unsubEnt = null; }
+      unsubEnt = fs.collection("weeks/"+w+"/entries").onSnapshot(function(snap){
+        cb(snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }));
+      }, function(e){ onDbError(e, "reading this week"); });
+    };
+    this.getEntries = function(w){
+      return fs.collection("weeks/"+w+"/entries").get().then(function(snap){
+        return snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+      });
+    };
+    this.putEntry = function(w,id,data){ return fs.doc("weeks/"+w+"/entries/"+id).set(data); };
+    this.delEntry = function(w,id){ return fs.doc("weeks/"+w+"/entries/"+id).delete(); };
+  }
+
+  function LocalStore(){
+    var cfgCb=null, accCb=null, entCb=null, entWeek=null;
+    this.kind = "local";
+    function rd(k, dflt){ try{ var r = ls(k); return r ? JSON.parse(r) : dflt; }catch(e){ return dflt; } }
+    function wr(k, v){ ls(k, JSON.stringify(v)); }
+    this.watchConfig = function(cb){ cfgCb = cb; cb(rd("rota.cfg", null)); };
+    this.saveConfig = function(c){ wr("rota.cfg", c); if(cfgCb) cfgCb(c); return Promise.resolve(); };
+    this.watchAccounts = function(cb){ accCb = cb; cb(rd("rota.acc", [])); };
+    this.getAccount = function(room){
+      var a = rd("rota.acc", []).filter(function(x){ return x.room===room; })[0];
+      return Promise.resolve(a || null);
+    };
+    this.claimRoom = function(room, data){
+      var list = rd("rota.acc", []);
+      if(list.some(function(x){ return x.room===room; })) return Promise.resolve({ok:false, reason:"taken"});
+      list.push(Object.assign({room:room}, data)); wr("rota.acc", list);
+      if(accCb) accCb(list);
+      return Promise.resolve({ok:true});
+    };
+    this.saveAccount = function(room, data){
+      var list = rd("rota.acc", []).map(function(x){ return x.room===room ? Object.assign({room:room}, data) : x; });
+      wr("rota.acc", list); if(accCb) accCb(list); return Promise.resolve();
+    };
+    this.releaseRoom = function(room){
+      var list = rd("rota.acc", []).filter(function(x){ return x.room!==room; });
+      wr("rota.acc", list); if(accCb) accCb(list); return Promise.resolve();
+    };
+    this.watchEntries = function(w, cb){ entWeek=w; entCb=cb; cb(rd("rota.ent."+w, [])); };
+    this.getEntries = function(w){ return Promise.resolve(rd("rota.ent."+w, [])); };
+    this.putEntry = function(w,id,data){
+      var list = rd("rota.ent."+w, []).filter(function(r){ return r.id!==id; });
+      list.push(Object.assign({id:id}, data)); wr("rota.ent."+w, list);
+      if(entCb && entWeek===w) entCb(list);
+      return Promise.resolve();
+    };
+    this.delEntry = function(w,id){
+      var list = rd("rota.ent."+w, []).filter(function(r){ return r.id!==id; });
+      wr("rota.ent."+w, list); if(entCb && entWeek===w) entCb(list);
+      return Promise.resolve();
+    };
+  }
+
+  /* ================= app state ================= */
+  var DEFAULT_CFG = { name:"Home", chores:[], bonusPresets:[], crew:0, zones:[] };
+  var store = null, cfg = null, draft = null;
+  var accounts = [];          // [{room, name, color, hash, salt, iter}]
+  var entries = [];
+  var session = null;         // {room, name, exp}
+  var thisWeek = weekIndexOf(mondayOf(new Date()));
+  var curWeek = thisWeek;
+  var seasonOpen = false;
+  var booted = false;
+  var pending = { room:null, mode:null, color:"pine", zone:"" };
+  var pinFails = {};   // room -> {n, until}
+
+  function members(){
+    return accounts.slice().sort(function(a,b){ return a.room - b.room; })
+      .map(function(a){ return {id:"r"+a.room, room:a.room, name:a.name || ("Room "+a.room),
+        color:a.color || "pine", zone:a.zone || ""}; });
+  }
+  function memberById(id){ var m = members(); for(var i=0;i<m.length;i++) if(m[i].id===id) return m[i]; return null; }
+  function accountFor(room){ for(var i=0;i<accounts.length;i++) if(accounts[i].room===room) return accounts[i]; return null; }
+  function colorVar(m){ return "var(--c-" + ((m && m.color) || "pine") + ")"; }
+  function meId(){ return session ? "r"+session.room : ""; }
+
+  // How many rooms are on duty each week. 0 = all of them.
+  function crewSize(c){
+    c = c || cfg || {};
+    if(c.crew !== undefined && c.crew !== null) return c.crew|0;
+    return c.rotationMode === "block" ? 1 : 0;   // pre-crew boards
+  }
+  function zones(){ return (cfg && cfg.zones) || []; }
+  function zoneName(id){
+    var z = zones();
+    for(var i=0;i<z.length;i++) if(z[i].id === id) return z[i].name;
+    return "";
+  }
+  // Rooms a duty can land on: its zone's rooms, or the whole house if it has none.
+  function poolFor(chore){
+    var ms = members();
+    if(!chore.zone) return ms;
+    return ms.filter(function(m){ return m.zone === chore.zone; });
+  }
+  function crewOf(wi, k, pool){
+    pool = pool || members();
+    if(!pool.length) return [];
+    if(!k || k >= pool.length) return pool;
+    var start = (((k*wi) % pool.length) + pool.length) % pool.length, out = [];
+    for(var i=0;i<k;i++) out.push(pool[(start+i) % pool.length]);
+    return out;
+  }
+  // Rotating duties are dealt out like cards. Heaviest first (longest-processing-time
+  // first), so the split stays even in effort as well as in count, whatever the
+  // number of rooms. Position in THIS order is what decides who gets what.
+  function rotOrder(zoneKey){
+    return (cfg.chores || [])
+      .map(function(c,i){ return {c:c, i:i}; })
+      .filter(function(x){ return x.c.rotate !== false && (x.c.zone || "") === zoneKey; })
+      .sort(function(a,b){ return (Number(b.c.points)||0) - (Number(a.c.points)||0) || a.i - b.i; })
+      .map(function(x){ return x.c.id; });
+  }
+  function rotIndex(chore){
+    var order = rotOrder(chore.zone || "");
+    for(var i=0;i<order.length;i++) if(order[i] === chore.id) return i;
+    return 0;
+  }
+  function assigneeFor(chore, wi, k){
+    var ms = members();
+    if(!ms.length) return null;
+    if(chore.rotate === false) return memberById(chore.memberId) || null;
+    var pool = poolFor(chore);
+    if(!pool.length) return null;              // zone with nobody in it
+    k = (k === undefined) ? crewSize() : k;
+    var idx = rotIndex(chore);
+    if(!k || k >= pool.length){
+      // deal round that pool, shifting one place each week
+      return pool[((((wi + idx) % pool.length) + pool.length) % pool.length)];
+    }
+    return crewOf(wi, k, pool)[idx % k];
+  }
+  function onDutyRooms(wi, k){
+    if(!k) return [];
+    var seen = {}, out = [];
+    (cfg.chores || []).forEach(function(c){
+      if(c.rotate === false) return;
+      var a = assigneeFor(c, wi, k);
+      if(a && !seen[a.id]){ seen[a.id] = 1; out.push(a); }
+    });
+    return out.sort(function(a,b){ return a.room - b.room; });
+  }
+  function crewLabel(wi, k){
+    var crew = onDutyRooms(wi, k);
+    if(!crew.length || crew.length >= members().length) return "";
+    if(crew.length === 1) return "Room " + crew[0].room;
+    var nums = crew.map(function(m){ return m.room; });
+    return "Rooms " + nums.slice(0,-1).join(", ") + " & " + nums[nums.length-1];
+  }
+
+  /* ================= errors ================= */
+  var errTimer = null;
+  function showErr(msg){
+    $("errText").textContent = msg;
+    $("errNotice").hidden = false;
+    clearTimeout(errTimer);
+    errTimer = setTimeout(function(){ $("errNotice").hidden = true; }, 9000);
+  }
+  function onDbError(e, what){
+    var code = e && e.code, msg;
+    if(code === "permission-denied") msg = "The database refused that write — check the Firestore rules.";
+    else if(code === "unauthenticated") msg = "The database refused the connection — check the Firestore rules.";
+    else if(code === "resource-exhausted") msg = "The database has hit its free-tier limit for today.";
+    else if(code === "unavailable" || code === "deadline-exceeded") msg = "Can't reach the database. Check your connection.";
+    else if(code === "not-found" || code === "invalid-argument") msg = "That request didn't make sense to the database.";
+    else msg = "Something went wrong " + what + ". Try again in a moment.";
+    showErr(msg);
+  }
+
+  /* ================= gate ================= */
+  function showGate(){
+    $("gate").hidden = false;
+    $("app").hidden = true;
+    renderRooms();
+  }
+  function showApp(){
+    $("gate").hidden = true;
+    $("app").hidden = false;
+    render();
+  }
+
+  function renderRooms(){
+    var anyone = accounts.length > 0;
+    $("gateHint").textContent = "Tap your room, or a vacant one to claim it.";
+    var html = "";
+    for(var n=1; n<=ROOMS; n++){
+      var a = accountFor(n);
+      html += '<button type="button" class="room'+(a?" taken":"")+'" data-room="'+n+'"'+
+        (a ? ' style="--rc:var(--c-'+esc(a.color||"pine")+')"' : "")+
+        ' aria-label="'+(a ? "Sign in as "+esc(a.name)+", room "+n : "Claim room "+n)+'">'+
+        '<span class="n">'+n+"</span>"+
+        (a ? '<span class="who">'+esc(a.name)+"</span>" : '<span class="vac">Vacant</span>')+
+        "</button>";
+    }
+    $("rooms").innerHTML = html;
+  }
+
+  function openAuth(room){
+    var a = accountFor(room);
+    pending.room = room;
+    pending.mode = a ? "login" : "claim";
+    pending.color = (a && a.color) || COLORS[(room-1) % COLORS.length];
+
+    var f = $("authForm");
+    f.hidden = false;
+    f.style.setProperty("--rc", "var(--c-"+pending.color+")");
+    $("authTitle").textContent = "Room " + room + (a ? " · " + a.name : "");
+    $("authMsg").textContent = "";
+    $("authMsg").className = "authmsg";
+    $("iPass").value = ""; $("iPass2").value = ""; $("iName").value = "";
+
+    if(pending.mode === "login"){
+      $("authSub").textContent = "";
+      $("fName").hidden = true; $("fColor").hidden = true; $("fPass2").hidden = true;
+      $("fZone").hidden = true;
+      $("pinHelp").hidden = true;
+      $("passLabel").textContent = "Your 4-digit PIN";
+      $("authGo").textContent = "Sign in";
+      $("iPass").focus();
+    } else {
+      $("authSub").textContent = "";
+      $("fName").hidden = false; $("fColor").hidden = false; $("fPass2").hidden = false;
+      renderZonePicker();
+      $("pinHelp").hidden = false;
+      $("passLabel").textContent = "Choose a 4-digit PIN";
+      $("authGo").textContent = "Claim room " + room;
+      renderSwatches();
+      $("iName").focus();
+    }
+    f.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"nearest"});
+  }
+
+  function renderZonePicker(){
+    var z = zones();
+    $("fZone").hidden = z.length < 2;
+    if(z.length < 2){ pending.zone = z.length ? z[0].id : ""; return; }
+    $("iZone").innerHTML = z.map(function(x,i){
+      return '<option value="'+esc(x.id)+'"'+(i===0?" selected":"")+">"+esc(x.name)+"</option>";
+    }).join("");
+    pending.zone = z[0].id;
+  }
+  function renderSwatches(){
+    $("swatches").innerHTML = COLORS.map(function(c){
+      return '<button type="button" class="sw" data-color="'+c+'" style="--swc:var(--c-'+c+')" '+
+        'aria-pressed="'+(c===pending.color)+'" aria-label="'+c+'" title="'+c+'"></button>';
+    }).join("");
+  }
+
+  function authMsg(text, ok){
+    var el = $("authMsg");
+    el.textContent = text;
+    el.className = "authmsg" + (ok ? " ok" : "");
+  }
+
+  function submitAuth(){
+    if(!subtle){ authMsg("This browser can't hash PINs securely, so sign-in is disabled here. Try a different browser."); return; }
+    var room = pending.room, pw = $("iPass").value;
+    var remember = $("iRemember").checked;
+
+    var lock = pinFails[room];
+    if(lock && lock.until > Date.now()){
+      authMsg("Too many wrong PINs. Try again in " + Math.ceil((lock.until - Date.now())/1000) + "s.");
+      return;
+    }
+    if(!/^\d{4}$/.test(pw)){ authMsg("Enter your 4-digit PIN."); $("iPass").focus(); return; }
+    $("authGo").disabled = true;
+
+    if(pending.mode === "login"){
+      authMsg("Checking…", true);
+      store.getAccount(room).then(function(acct){
+        if(!acct){ authMsg("That room was released. Go back and claim it."); $("authGo").disabled = false; return; }
+        return checkHash(pw, acct).then(function(ok){
+          $("authGo").disabled = false;
+          if(!ok){
+            var f = pinFails[room] || {n:0, until:0};
+            f.n += 1;
+            if(f.n >= 5){ f.until = Date.now() + 60000; f.n = 0; }
+            pinFails[room] = f;
+            authMsg(f.until > Date.now()
+              ? "Too many wrong PINs. Try again in 60s."
+              : "Wrong PIN for room " + room + ".");
+            $("iPass").value = ""; $("iPass").focus();
+            return;
+          }
+          pinFails[room] = null;
+          signIn(room, acct.name, remember);
+        });
+      }).catch(function(e){ $("authGo").disabled = false; authMsg("Couldn't reach the board. Try again."); });
+      return;
+    }
+
+    var name = $("iName").value.trim();
+    if(!name){ authMsg("Add a name so the board knows who room " + room + " is."); $("iName").focus(); $("authGo").disabled = false; return; }
+    if(pw !== $("iPass2").value){ authMsg("The two PINs don't match."); $("iPass2").value = ""; $("iPass2").focus(); $("authGo").disabled = false; return; }
+
+    authMsg("Claiming room " + room + "…", true);
+    makeHash(pw).then(function(h){
+      return store.claimRoom(room, {
+        name:name, color:pending.color, zone:pending.zone || "",
+        hash:h.hash, salt:h.salt, iter:h.iter, alg:h.alg,
+        createdAt: new Date().toISOString()
+      });
+    }).then(function(res){
+      $("authGo").disabled = false;
+      if(!res.ok){
+        authMsg(res.reason === "taken"
+          ? "Someone just claimed room " + room + ". Go back and pick another."
+          : "Someone else is claiming that room right now. Try again in a moment.");
+        return;
+      }
+      signIn(room, name, remember);
+    }).catch(function(e){
+      $("authGo").disabled = false;
+      authMsg(e && e.code === "invalid_argument"
+        ? "The board isn't accepting new rooms right now."
+        : "Couldn't claim that room. Try again.");
+    });
+  }
+
+  function signIn(room, name, remember){
+    session = {room:room, name:name, exp: Date.now() + SESSION_DAYS*86400000};
+    writeSession(session, remember);
+    $("authForm").hidden = true;
+    showApp();
+  }
+  function signOut(){
+    clearSession();
+    session = null;
+    $("authForm").hidden = true;
+    showGate();
+  }
+
+  /* ================= board rendering ================= */
+  function render(){
+    if(!cfg || $("app").hidden) return;
+    $("houseName").textContent = cfg.name || "Home";
+    var L = labelFor(curWeek);
+    $("weekLabel").innerHTML = esc(L.core) + ' <span class="yr">' + L.year + "</span>";
+    $("thisWeek").hidden = (curWeek === thisWeek);
+    renderSession();
+    $("manageBtn").hidden = !isAdmin();
+    if(!isAdmin() && !$("manage").hidden){ $("manage").hidden = true; draft = null; }
+    renderLanes();
+    renderStandings();
+    renderBonuses();
+    if(!$("manage").hidden) renderManage();
+  }
+
+  function renderSession(){
+    if(!session){ $("sessionBox").innerHTML = ""; return; }
+    var m = memberById(meId());
+    $("sessionBox").innerHTML =
+      '<span class="badge" style="--sc:'+colorVar(m)+'"><span class="rm">RM '+session.room+"</span>"+
+      '<span class="nm">'+esc(m ? m.name : session.name)+"</span></span>"+
+      '<button class="ghost tiny" id="signOut">Sign out</button>';
+    $("signOut").addEventListener("click", signOut);
+  }
+
+  function doneMap(){
+    var map = {};
+    entries.forEach(function(e){ if(e.kind === "duty") map[e.choreId] = e; });
+    return map;
+  }
+
+  function pointTotals(){
+    var t = {};
+    members().forEach(function(m){ t[m.id] = {duty:0, bonus:0, total:0}; });
+    entries.forEach(function(e){
+      var b = t[e.memberId]; if(!b) return;
+      var p = Number(e.points) || 0;
+      if(e.kind === "bonus") b.bonus += p; else b.duty += p;
+      b.total += p;
+    });
+    return t;
+  }
+
+  function renderLanes(){
+    var ms = members(), chores = cfg.chores || [], done = doneMap();
+    if(!ms.length){
+      $("lanes").innerHTML = '<p class="none">No rooms claimed yet.</p>';
+      $("dutiesSub").textContent = "";
+      return;
+    }
+    var byMember = {}; ms.forEach(function(m){ byMember[m.id] = []; });
+    var orphan = [];
+    chores.forEach(function(c){
+      var a = assigneeFor(c, curWeek);
+      if(a && byMember[a.id]) byMember[a.id].push(c); else orphan.push(c);
+    });
+
+    var totals = pointTotals();
+    var late = curWeek < thisWeek || (curWeek === thisWeek && new Date().getDay() === 0);
+    var mine = meId();
+    var html = "";
+
+    ms.forEach(function(m){
+      var list = byMember[m.id];
+      var t = totals[m.id] || {total:0};
+      var isMe = m.id === mine;
+      html += '<div class="lane'+(isMe?" me":"")+'" style="--lanec:'+colorVar(m)+'">'+
+        '<div class="who2">'+
+          '<span class="rm">Room '+m.room+(m.zone && zoneName(m.zone) ? " · "+esc(zoneName(m.zone)) : "")+"</span>"+
+          '<span class="nm">'+esc(m.name)+"</span>"+
+          '<span class="tally">'+list.filter(function(c){ return done[c.id]; }).length+"/"+list.length+
+            " done · "+list.reduce(function(a,c){ return a + (Number(c.points)||0); },0)+" pts on</span>"+
+          (isMe ? '<span class="youtag">You</span>' : "")+
+        "</div><div class=\"duties\">";
+      if(!list.length) html += '<span class="empty">Off this week.</span>';
+      list.forEach(function(c){
+        var isDone = !!done[c.id];
+        var next = c.rotate === false ? null : assigneeFor(c, curWeek+1);
+        var title = !isMe ? "Room "+m.room+"'s duty"
+          : (c.rotate === false ? "Pinned to you"
+            : "Next week: " + (next ? "room "+next.room+" · "+next.name : "—"));
+        html += '<button type="button" class="duty'+(isDone?" done":(late?" late":""))+'" '+
+          'id="duty-'+esc(c.id)+'" data-chore="'+esc(c.id)+'" data-member="'+esc(m.id)+'" '+
+          'aria-pressed="'+isDone+'" title="'+esc(title)+'"'+(isMe?"":" disabled")+">"+
+          '<span class="box"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 6.4 L4.4 9.2 L10.5 2.8"/></svg></span>'+
+          '<span class="t">'+esc(c.title)+"</span>"+
+          '<span class="p">'+(c.points||0)+"</span>"+
+          '<span class="rot" aria-hidden="true">'+(c.rotate === false ? "📌" : "↻")+"</span>"+
+          "</button>";
+      });
+      html += "</div></div>";
+    });
+
+    if(orphan.length){
+      html += '<div class="lane" style="--lanec:var(--brick)"><div class="who2">'+
+        '<span class="rm">Nobody</span><span class="nm">Unassigned</span>'+
+        '<span class="tally">no room to land on</span></div><div class="duties">';
+      orphan.forEach(function(c){
+        html += '<button type="button" class="duty" disabled title="'+
+          esc(c.zone ? "Nobody is in " + (zoneName(c.zone) || "that group") + " yet" : "Reassign this in Manage board")+'">'+
+          '<span class="box"></span><span class="t">'+esc(c.title)+'</span><span class="p">'+(c.points||0)+"</span></button>";
+      });
+      html += "</div></div>";
+    }
+
+    $("lanes").innerHTML = html;
+    var tick = chores.length ? (Object.keys(done).length + " of " + chores.length + " ticked off") : "";
+    var cl = crewLabel(curWeek, crewSize());
+    $("dutiesSub").textContent = (cl ? cl + "'s week" + (tick ? " · " : "") : "") + tick;
+  }
+
+  function renderStandings(){
+    var t = pointTotals();
+    var rows = members().map(function(m){ return {m:m, t:t[m.id] || {duty:0,bonus:0,total:0}}; });
+    if(!rows.length){ $("stand").innerHTML = '<p class="none">Nothing yet.</p>'; return; }
+    rows.sort(function(a,b){ return b.t.total - a.t.total || a.m.room - b.m.room; });
+    var max = Math.max(1, rows[0].t.total);
+    $("stand").innerHTML = rows.map(function(r,i){
+      return '<div class="row">'+
+        '<span class="nm"><span class="rk">'+(i+1)+"</span>"+esc(r.m.name)+
+        '<span class="rmn">rm '+r.m.room+"</span></span>"+
+        '<span class="pts">'+r.t.total+"</span>"+
+        '<span class="bar"><i class="d" style="width:'+((r.t.duty/max)*100).toFixed(1)+'%"></i>'+
+        '<i class="b" style="width:'+((r.t.bonus/max)*100).toFixed(1)+'%"></i></span>'+
+        "</div>";
+    }).join("");
+    $("standSub").textContent = curWeek === thisWeek ? "this week" : "week of " + labelFor(curWeek).core;
+  }
+
+  function renderBonuses(){
+    var sel = $("bWho"), prev = sel.value;
+    var ms = members();
+    sel.innerHTML = ms.map(function(m){
+      return '<option value="'+esc(m.id)+'">Rm '+m.room+" · "+esc(m.name)+"</option>";
+    }).join("") || '<option value="">nobody yet</option>';
+    if(prev && memberById(prev)) sel.value = prev;
+    else if(meId() && memberById(meId())) sel.value = meId();
+
+    $("presets").innerHTML = (cfg.bonusPresets || []).map(function(p,i){
+      return '<button type="button" class="preset" data-preset="'+i+'">'+esc(p.title)+
+        ' <span style="font-family:var(--fm);font-size:10.5px">+'+(p.points||0)+"</span></button>";
+    }).join("");
+
+    var list = entries.filter(function(e){ return e.kind === "bonus"; })
+      .sort(function(a,b){ return String(b.at||"").localeCompare(String(a.at||"")); });
+    if(!list.length){
+      $("blog").innerHTML = '<li><span class="none">Nothing logged this week.</span></li>';
+      return;
+    }
+    $("blog").innerHTML = list.map(function(e){
+      var m = memberById(e.memberId), when = "";
+      try{ when = new Date(e.at).toLocaleDateString(undefined,{weekday:"short"}); }catch(err){}
+      var canDel = e.memberId === meId() || e.by === meId();
+      return '<li><span class="star" aria-hidden="true">★</span><span class="body">'+
+        '<span class="ttl">'+esc(e.title)+"</span><br>"+
+        '<span class="meta"><b style="color:'+colorVar(m)+'">'+esc(m ? m.name : "Room "+String(e.memberId||"").slice(1))+"</b> · "+esc(when)+
+        (e.by && e.by !== e.memberId ? " · logged by " + esc((memberById(e.by)||{}).name || "someone") : "")+"</span></span>"+
+        '<span class="pp">+'+(Number(e.points)||0)+"</span>"+
+        (canDel ? '<button class="del" data-del="'+esc(e.id)+'" title="Remove" aria-label="Remove bonus">×</button>' : "")+
+        "</li>";
+    }).join("");
+  }
+
+  function renderSeason(){
+    var out = $("seasonOut");
+    if(!seasonOpen){ out.hidden = true; $("seasonBtn").textContent = "Show last 8 weeks"; return; }
+    out.hidden = false;
+    $("seasonBtn").textContent = "Hide last 8 weeks";
+    out.innerHTML = '<p class="none" style="margin:10px 0 0">Adding up…</p>';
+    var weeks = [];
+    for(var i=0;i<8;i++) weeks.push(curWeek - i);
+    Promise.all(weeks.map(function(w){
+      return w === curWeek ? Promise.resolve(entries) : store.getEntries(weekKey(w)).catch(function(){ return []; });
+    })).then(function(all){
+      var t = {};
+      members().forEach(function(m){ t[m.id] = {duty:0, bonus:0}; });
+      all.forEach(function(list){
+        list.forEach(function(e){
+          var b = t[e.memberId]; if(!b) return;
+          var p = Number(e.points) || 0;
+          if(e.kind === "bonus") b.bonus += p; else b.duty += p;
+        });
+      });
+      var rows = members().map(function(m){ return {m:m, d:t[m.id].duty, b:t[m.id].bonus}; })
+        .sort(function(a,b){ return (b.d+b.b) - (a.d+a.b); });
+      out.innerHTML = '<table><thead><tr><th>Since '+esc(labelFor(curWeek-7).core)+
+        '</th><th style="text-align:right">Duties</th><th style="text-align:right">Bonus</th><th style="text-align:right">All</th></tr></thead><tbody>'+
+        rows.map(function(r){
+          return "<tr><td>"+esc(r.m.name)+'</td><td class="n">'+r.d+'</td><td class="n">'+r.b+
+            '</td><td class="n"><b>'+(r.d+r.b)+"</b></td></tr>";
+        }).join("")+"</tbody></table>";
+    });
+  }
+
+  /* ================= manage ================= */
+  function isAdmin(){ return !!session && session.room === ADMIN_ROOM; }
+  function adminLabel(){
+    var m = memberById("r"+ADMIN_ROOM);
+    return m ? (m.name + " in room " + ADMIN_ROOM) : ("room " + ADMIN_ROOM);
+  }
+
+  function openManage(){
+    draft = JSON.parse(JSON.stringify(cfg));
+    $("manage").hidden = false;
+    renderManage();
+    $("manage").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"});
+  }
+
+  function renderManage(){
+    if(!draft) draft = JSON.parse(JSON.stringify(cfg));
+    var canEdit = isAdmin(), dis = canEdit ? "" : " disabled";
+    $("notOwner").hidden = canEdit;
+    $("notOwnerText").innerHTML = "You're signed in as room " + (session ? session.room : "?") +
+      ". Only <strong>" + esc(adminLabel()) + "</strong> can change the board — ticking off your own duties and logging bonuses works for everyone.";
+    $("saveCfg").disabled = !canEdit;
+    $("mHouse").value = draft.name || "";
+    $("mHouse").disabled = !canEdit;
+    var dz = draft.zones || (draft.zones = []);
+    $("mZones").innerHTML = dz.length ? dz.map(function(z,i){
+      return '<div class="mrow" data-zi="'+i+'">'+
+        '<input type="text" data-f="zname" value="'+esc(z.name)+'" placeholder="Group" aria-label="Group name"'+dis+">"+
+        '<button class="x" data-rm-zone="'+i+'" title="Remove" aria-label="Remove group"'+dis+">×</button>"+
+        "</div>";
+    }).join("") : '<p class="mhint" style="margin:0 0 8px">No groups — every duty is open to every room.</p>';
+    $("addZone").disabled = !canEdit;
+
+    var ms = members();
+    $("mMembers").innerHTML = ms.length ? ms.map(function(m){
+      return '<div class="mrow">'+
+        '<span class="rmtag">RM '+m.room+"</span>"+
+        '<input type="text" value="'+esc(m.name)+'" data-acc-name="'+m.room+'" aria-label="Name for room '+m.room+'"'+dis+">"+
+        '<select data-acc-color="'+m.room+'" aria-label="Colour for room '+m.room+'"'+dis+">"+
+          COLORS.map(function(c){ return '<option value="'+c+'"'+(c===m.color?" selected":"")+">"+c+"</option>"; }).join("")+
+        "</select>"+
+        ((draft.zones||[]).length ? '<select data-acc-zone="'+m.room+'" aria-label="Group for room '+m.room+'"'+dis+">"+
+          '<option value="">— no group —</option>'+
+          (draft.zones||[]).map(function(z){
+            return '<option value="'+esc(z.id)+'"'+(z.id===m.zone?" selected":"")+">"+esc(z.name)+"</option>";
+          }).join("")+"</select>" : "")+
+        (m.room === ADMIN_ROOM
+          ? '<span class="rotlab" title="Room '+ADMIN_ROOM+' runs this board and cannot be released here">admin</span>'
+          : '<button class="x" data-release="'+m.room+'" title="Release this room" aria-label="Release room '+m.room+'"'+dis+">×</button>")+
+        "</div>";
+    }).join("") : '<p class="mhint">No rooms claimed yet.</p>';
+
+    var k = crewSize(draft), total = members().length;
+    $("mRotMode").innerHTML = [1,2,3,0].map(function(v){
+      return '<button type="button" data-crew="'+v+'" aria-pressed="'+(k===v)+'"'+dis+'>'+
+        '<span class="sl">'+(v ? v : "All")+"</span></button>";
+    }).join("");
+    var rot = (draft.chores||[]).filter(function(c){ return c.rotate !== false; }).length;
+    var now = crewLabel(curWeek, k), nxt = crewLabel(curWeek+1, k);
+    $("crewPreview").textContent = !total ? "No rooms claimed yet."
+      : (!k || k >= total || !now)
+        ? "Every room gets a share of the " + rot + " rotating " + (rot===1?"duty":"duties") + " each week."
+        : now + " on duty this week" + (nxt ? "; " + nxt.toLowerCase() + " next." : ".");
+
+    $("mChores").innerHTML = (draft.chores || []).map(function(c,i){
+      var rotating = c.rotate !== false;
+      return '<div class="mrow" data-ci="'+i+'">'+
+        '<input type="text" data-f="title" value="'+esc(c.title)+'" placeholder="Duty" aria-label="Duty name"'+dis+">"+
+        '<input type="number" class="pts" data-f="points" min="0" max="99" value="'+(c.points||0)+'" aria-label="Points"'+dis+">"+
+        '<select data-f="assign" aria-label="Assignment"'+dis+">"+
+          '<option value="__rot"'+((rotating && !c.zone)?" selected":"")+">↻ rotates · everyone</option>"+
+          (draft.zones||[]).map(function(z){
+            return '<option value="__rot:'+esc(z.id)+'"'+((rotating && c.zone===z.id)?" selected":"")+">↻ rotates · "+esc(z.name)+"</option>";
+          }).join("")+
+          ms.map(function(m){
+            return '<option value="'+esc(m.id)+'"'+((!rotating && c.memberId===m.id)?" selected":"")+">📌 Rm "+m.room+" · "+esc(m.name)+"</option>";
+          }).join("")+
+        "</select>"+
+        '<button class="x" data-rm-chore="'+i+'" title="Remove" aria-label="Remove duty"'+dis+">×</button>"+
+        "</div>";
+    }).join("");
+    $("addChore").disabled = !canEdit;
+
+    $("mPresets").innerHTML = (draft.bonusPresets || []).map(function(p,i){
+      return '<div class="mrow" data-pi="'+i+'">'+
+        '<input type="text" data-f="title" value="'+esc(p.title)+'" placeholder="Bonus" aria-label="Bonus name"'+dis+">"+
+        '<input type="number" class="pts" data-f="points" min="0" max="99" value="'+(p.points||0)+'" aria-label="Points"'+dis+">"+
+        '<button class="x" data-rm-preset="'+i+'" title="Remove" aria-label="Remove preset"'+dis+">×</button>"+
+        "</div>";
+    }).join("");
+    $("addPreset").disabled = !canEdit;
+  }
+
+  function harvestDraft(){
+    draft.name = $("mHouse").value.trim() || "Home";
+    Array.prototype.forEach.call($("mZones").children, function(row){
+      if(!row.getAttribute) return;
+      var i = row.getAttribute("data-zi"); if(i === null) return;
+      var f = row.querySelector('[data-f="zname"]');
+      if(f) draft.zones[+i].name = f.value.trim() || ("Group " + (+i + 1));
+    });
+    Array.prototype.forEach.call($("mChores").children, function(row){
+      if(!row.getAttribute) return;
+      var i = row.getAttribute("data-ci"); if(i === null) return;
+      var c = draft.chores[+i];
+      c.title = row.querySelector('[data-f="title"]').value.trim() || "Untitled duty";
+      c.points = Math.max(0, Math.min(99, parseInt(row.querySelector('[data-f="points"]').value, 10) || 0));
+      var a = row.querySelector('[data-f="assign"]').value;
+      if(a.indexOf("__rot") === 0){
+        c.rotate = true; delete c.memberId;
+        var z = a.slice(6);
+        if(z) c.zone = z; else delete c.zone;
+      } else { c.rotate = false; c.memberId = a; delete c.zone; }
+    });
+    Array.prototype.forEach.call($("mPresets").children, function(row){
+      if(!row.getAttribute) return;
+      var i = row.getAttribute("data-pi"); if(i === null) return;
+      draft.bonusPresets[+i].title = row.querySelector('[data-f="title"]').value.trim() || "Bonus";
+      draft.bonusPresets[+i].points = Math.max(0, Math.min(99, parseInt(row.querySelector('[data-f="points"]').value, 10) || 0));
+    });
+  }
+
+  /* ================= actions ================= */
+  function toggleDuty(choreId, memberId){
+    if(memberId !== meId()){ showErr("You can only tick off your own duties."); return; }
+    var chore = (cfg.chores||[]).filter(function(c){ return c.id === choreId; })[0];
+    if(!chore) return;
+    var wk = weekKey(curWeek), id = "d_" + choreId;
+    if(doneMap()[choreId]){
+      store.delEntry(wk, id).catch(function(e){ onDbError(e, "un-ticking that duty"); });
+    } else {
+      store.putEntry(wk, id, {
+        kind:"duty", choreId:choreId, memberId:memberId,
+        points:Number(chore.points)||0, title:chore.title, at:new Date().toISOString()
+      }).catch(function(e){ onDbError(e, "ticking that duty"); });
+    }
+  }
+
+  function addBonus(){
+    var who = $("bWho").value, what = $("bWhat").value.trim(), pts = parseInt($("bPts").value, 10);
+    if(!who){ showErr("Nobody has claimed a room yet."); return; }
+    if(!what){ $("bWhat").focus(); showErr("Say what they did."); return; }
+    if(!(pts >= 0)) pts = 0;
+    store.putEntry(weekKey(curWeek), uid("b_"), {
+      kind:"bonus", memberId:who, by:meId(), title:what,
+      points:Math.min(99, pts), at:new Date().toISOString()
+    }).then(function(){ $("bWhat").value = ""; $("bPts").value = 3; })
+      .catch(function(e){ onDbError(e, "logging that bonus"); });
+  }
+
+  /* ================= wiring ================= */
+  $("rooms").addEventListener("click", function(ev){
+    var b = ev.target.closest && ev.target.closest("[data-room]");
+    if(b) openAuth(parseInt(b.getAttribute("data-room"), 10));
+  });
+  $("swatches").addEventListener("click", function(ev){
+    var b = ev.target.closest && ev.target.closest("[data-color]");
+    if(!b) return;
+    pending.color = b.getAttribute("data-color");
+    $("authForm").style.setProperty("--rc", "var(--c-"+pending.color+")");
+    renderSwatches();
+  });
+  $("iZone").addEventListener("change", function(){ pending.zone = this.value; });
+  $("authGo").addEventListener("click", submitAuth);
+  $("authBack").addEventListener("click", function(){ $("authForm").hidden = true; pending.room = null; });
+  ["iName","iPass","iPass2"].forEach(function(id){
+    $(id).addEventListener("keydown", function(e){ if(e.key === "Enter") submitAuth(); });
+  });
+  ["iPass","iPass2"].forEach(function(id){
+    $(id).addEventListener("input", function(){
+      var clean = this.value.replace(/\D/g, "").slice(0,4);
+      if(clean !== this.value) this.value = clean;
+      if(clean.length !== 4) return;
+      if(id === "iPass" && pending.mode === "claim"){ $("iPass2").focus(); return; }
+      if(id === "iPass" && pending.mode === "login"){ submitAuth(); return; }
+      if(id === "iPass2" && $("iPass").value.length === 4) submitAuth();
+    });
+  });
+
+  $("prevWeek").addEventListener("click", function(){ goWeek(curWeek-1); });
+  $("nextWeek").addEventListener("click", function(){ goWeek(curWeek+1); });
+  $("thisWeek").addEventListener("click", function(){ goWeek(thisWeek); });
+  function goWeek(i){
+    curWeek = i; entries = []; seasonOpen = false; renderSeason();
+    store.watchEntries(weekKey(curWeek), function(list){ entries = list; render(); });
+    render();
+  }
+
+  $("lanes").addEventListener("click", function(ev){
+    var b = ev.target.closest && ev.target.closest(".duty");
+    if(!b || b.disabled) return;
+    toggleDuty(b.getAttribute("data-chore"), b.getAttribute("data-member"));
+  });
+  $("presets").addEventListener("click", function(ev){
+    var b = ev.target.closest && ev.target.closest("[data-preset]");
+    if(!b) return;
+    var p = (cfg.bonusPresets||[])[+b.getAttribute("data-preset")];
+    if(!p) return;
+    $("bWhat").value = p.title; $("bPts").value = p.points || 0; $("bWhat").focus();
+  });
+  $("bAdd").addEventListener("click", addBonus);
+  $("bWhat").addEventListener("keydown", function(e){ if(e.key === "Enter") addBonus(); });
+  $("blog").addEventListener("click", function(ev){
+    var b = ev.target.closest && ev.target.closest("[data-del]");
+    if(!b) return;
+    store.delEntry(weekKey(curWeek), b.getAttribute("data-del"))
+      .catch(function(e){ onDbError(e, "removing that bonus"); });
+  });
+  $("seasonBtn").addEventListener("click", function(){ seasonOpen = !seasonOpen; renderSeason(); });
+
+  $("manageBtn").addEventListener("click", openManage);
+  $("closeManage").addEventListener("click", function(){ $("manage").hidden = true; draft = null; });
+  $("revertCfg").addEventListener("click", function(){ draft = JSON.parse(JSON.stringify(cfg)); renderManage(); });
+  $("mRotMode").addEventListener("click", function(ev){
+    var b = ev.target.closest && ev.target.closest("[data-crew]");
+    if(!b || b.disabled) return;
+    harvestDraft();
+    draft.crew = parseInt(b.getAttribute("data-crew"), 10);
+    delete draft.rotationMode;
+    renderManage();
+  });
+  $("addZone").addEventListener("click", function(){
+    harvestDraft();
+    draft.zones = draft.zones || [];
+    draft.zones.push({id:uid("z_"), name:""});
+    renderManage();
+    var rows = $("mZones").children;
+    if(rows.length && rows[rows.length-1].querySelector) rows[rows.length-1].querySelector("input").focus();
+  });
+  $("mZones").addEventListener("click", function(ev){
+    var b = ev.target.closest && ev.target.closest("[data-rm-zone]");
+    if(!b || b.disabled) return;
+    harvestDraft();
+    var gone = draft.zones.splice(+b.getAttribute("data-rm-zone"), 1)[0];
+    (draft.chores||[]).forEach(function(c){ if(c.zone === gone.id) delete c.zone; });
+    renderManage();
+  });
+  $("addChore").addEventListener("click", function(){
+    harvestDraft();
+    draft.chores.push({id:uid("c_"), title:"", points:3, rotate:true});
+    renderManage();
+    var rows = $("mChores").children;
+    if(rows.length) rows[rows.length-1].querySelector("input").focus();
+  });
+  $("addPreset").addEventListener("click", function(){
+    harvestDraft();
+    draft.bonusPresets.push({title:"", points:3});
+    renderManage();
+    var rows = $("mPresets").children;
+    if(rows.length) rows[rows.length-1].querySelector("input").focus();
+  });
+  $("saveCfg").addEventListener("click", function(){
+    harvestDraft();
+    $("saveStatus").textContent = "Saving…";
+    var next = JSON.parse(JSON.stringify(draft));
+    store.saveConfig(next).then(function(){
+      $("saveStatus").textContent = "Saved.";
+      setTimeout(function(){ $("saveStatus").textContent = ""; }, 2500);
+      if(store.kind !== "db"){ cfg = next; render(); }
+    }).catch(function(e){ $("saveStatus").textContent = ""; onDbError(e, "saving the board"); });
+  });
+
+  // room edits (name / colour / release) write straight to the account doc
+  $("mMembers").addEventListener("change", function(ev){
+    var t = ev.target;
+    if(!t.getAttribute) return;
+    var room = t.getAttribute("data-acc-name") || t.getAttribute("data-acc-color") || t.getAttribute("data-acc-zone");
+    if(!room) return;
+    room = parseInt(room, 10);
+    var acct = accountFor(room); if(!acct) return;
+    var next = Object.assign({}, acct);
+    delete next.room;
+    if(t.getAttribute("data-acc-name")) next.name = t.value.trim() || ("Room " + room);
+    else if(t.getAttribute("data-acc-zone")) next.zone = t.value;
+    else next.color = t.value;
+    store.saveAccount(room, next).catch(function(e){ onDbError(e, "updating that room"); });
+  });
+  $("mMembers").addEventListener("click", function(ev){
+    var b = ev.target.closest && ev.target.closest("[data-release]");
+    if(!b) return;
+    var room = parseInt(b.getAttribute("data-release"), 10);
+    if(room === ADMIN_ROOM){ showErr("Room " + ADMIN_ROOM + " can't be released."); return; }
+    b.disabled = true;
+    store.releaseRoom(room).then(function(){
+      if(session && session.room === room) signOut();
+    }).catch(function(e){ b.disabled = false; onDbError(e, "releasing that room"); });
+  });
+  $("manage").addEventListener("click", function(ev){
+    var t = ev.target;
+    if(!t.getAttribute) return;
+    var ci = t.getAttribute("data-rm-chore"), pi = t.getAttribute("data-rm-preset");
+    if(ci !== null && ci !== undefined){ harvestDraft(); draft.chores.splice(+ci,1); renderManage(); }
+    else if(pi !== null && pi !== undefined){ harvestDraft(); draft.bonusPresets.splice(+pi,1); renderManage(); }
+  });
+
+  /* ================= boot ================= */
+  function setSync(ok, text){
+    $("syncState").innerHTML = '<span class="dot'+(ok?"":" off")+'"></span>' + esc(text);
+  }
+
+  function maybeBoot(){
+    if(booted || cfg === null) return;   // wait for first config snapshot
+    booted = true;
+    var s = readSession();
+    if(s && accountFor(s.room)){
+      session = {room:s.room, name:(accountFor(s.room).name || s.name), exp:s.exp};
+      showApp();
+    } else {
+      if(s) clearSession();
+      showGate();
+    }
+  }
+
+  function start(st, live){
+    store = st;
+    var seeded = false;
+    store.watchConfig(function(next){
+      if(!next && store.seedConfig && !seeded){ seeded = true; store.seedConfig(SEED_CONFIG); }
+      cfg = next || Object.assign({}, DEFAULT_CFG);
+      try{ ls("rota.cfgcache", JSON.stringify(cfg)); }catch(e){}
+      if(live) setSync(true, "Synced");
+      maybeBoot(); render();
+    });
+    store.watchAccounts(function(list){
+      accounts = list || [];
+      if($("gate").hidden === false) renderRooms();
+      if(session && !accountFor(session.room)) signOut();
+      maybeBoot(); render();
+    });
+    store.watchEntries(weekKey(curWeek), function(list){ entries = list; render(); });
+  }
+
+  if(!subtle){
+    $("gateHint").textContent = "This browser can't hash passwords securely (needs a modern browser over https), so sign-in is unavailable here.";
+  }
+
+  function connect(){
+    if(!window.firebase || !FIREBASE_CONFIG.projectId) return null;
+    try{
+      firebase.initializeApp(FIREBASE_CONFIG);
+      var fs = firebase.firestore();
+      try{ fs.enablePersistence({synchronizeTabs:true}); }catch(e){}
+      return fs;
+    }catch(e){ return null; }
+  }
+
+  var fs = connect();
+  if(fs){
+    start(new FirebaseStore(fs), true);
+  } else {
+    setSync(false, FIREBASE_CONFIG.projectId
+      ? "Can't reach the database — this browser only"
+      : "No database configured — this browser only");
+    start(new LocalStore(), false);
+  }
+})();
+</script>
+
+</body>
+</html>
