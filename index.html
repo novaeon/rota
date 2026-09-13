@@ -585,6 +585,7 @@ var SEED_CONFIG = {
 
   /* ================= session storage (cookie + fallback) ================= */
   function writeSession(val, persist){
+    val.persist = !!persist;
     var s = JSON.stringify(val);
     try{
       document.cookie = "rota_session=" + encodeURIComponent(s) +
@@ -761,7 +762,7 @@ var SEED_CONFIG = {
   var thisWeek = weekIndexOf(mondayOf(new Date()));
   var curWeek = thisWeek;
   var seasonOpen = false;
-  var booted = false;
+  var booted = false, gotCfg = false, gotAccounts = false;
   var pending = { room:null, mode:null, color:"pine", zone:"" };
   var pinFails = {};   // room -> {n, until}
 
@@ -871,6 +872,7 @@ var SEED_CONFIG = {
   function showGate(){
     $("gate").hidden = false;
     $("app").hidden = true;
+    $("rooms").hidden = false;
     renderRooms();
   }
   function showApp(){
@@ -1602,12 +1604,17 @@ var SEED_CONFIG = {
     $("syncState").innerHTML = '<span class="dot'+(ok?"":" off")+'"></span>' + esc(text);
   }
 
+  // Both the board AND the room list have to have arrived before we can judge
+  // a saved session — deciding on the config snapshot alone threw people out,
+  // because the accounts list is usually a beat behind and the room looked gone.
   function maybeBoot(){
-    if(booted || cfg === null) return;   // wait for first config snapshot
+    if(booted || !gotCfg || !gotAccounts) return;
     booted = true;
     var s = readSession();
-    if(s && accountFor(s.room)){
-      session = {room:s.room, name:(accountFor(s.room).name || s.name), exp:s.exp};
+    var acct = s && accountFor(s.room);
+    if(acct){
+      session = {room:s.room, name:(acct.name || s.name)};
+      writeSession(session, s.persist !== false);   // sliding expiry: 60 days from each visit
       showApp();
     } else {
       if(s) clearSession();
@@ -1619,6 +1626,7 @@ var SEED_CONFIG = {
     store = st;
     var seeded = false;
     store.watchConfig(function(next){
+      gotCfg = true;
       if(!next && store.seedConfig && !seeded){ seeded = true; store.seedConfig(SEED_CONFIG); }
       cfg = next || Object.assign({}, DEFAULT_CFG);
       try{ ls("rota.cfgcache", JSON.stringify(cfg)); }catch(e){}
@@ -1626,12 +1634,20 @@ var SEED_CONFIG = {
       maybeBoot(); render();
     });
     store.watchAccounts(function(list){
+      gotAccounts = true;
       accounts = list || [];
+      try{ ls("rota.acccache", JSON.stringify(accounts)); }catch(e){}
       if($("gate").hidden === false) renderRooms();
-      if(session && !accountFor(session.room)) signOut();
+      // only after boot: this means the room was genuinely released
+      if(booted && session && !accountFor(session.room)) signOut();
       maybeBoot(); render();
     });
     store.watchEntries(weekKey(curWeek), function(list){ entries = list; render(); });
+  }
+
+  if(readSession()){
+    $("gateHint").textContent = "Signing you in…";
+    $("rooms").hidden = true;
   }
 
   if(!subtle){
